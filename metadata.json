@@ -1,0 +1,6 @@
+{
+  "name": "TalentSphere AI",
+  "description": "Plateforme de recrutement intelligente propulsée par l’IA Google Gemini et Firebase pour le sourcing de profils, l'évaluation technique interactive et le matching de compétences.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

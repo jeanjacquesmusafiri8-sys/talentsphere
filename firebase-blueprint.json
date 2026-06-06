@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "User": {
+      "title": "Student User Profile",
+      "description": "Profil de l'étudiant avec compétences extraites par l'IA, scores techniques et représentation vectorielle conceptuelle de son profil.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unique de l'utilisateur (UID Firebase Auth)." },
+        "name": { "type": "string", "description": "Nom complet de l'étudiant." },
+        "email": { "type": "string", "description": "Adresse de messagerie de contact." },
+        "extractedSkills": { "type": "array", "description": "Liste brute des hard-skills extraites de son parcours par Gemini." },
+        "aiScores": { "type": "object", "description": "Scores d'évaluation calculés par discipline/exercice." },
+        "profileVector": { "type": "array", "description": "Vecteur numérique ou sémantique représentant l'orientation de son profil (ex: [0.8, 0.4, 0.9] pour Full-stack/DevOps)." },
+        "careerInterests": { "type": "string", "description": "Centres d'intérêt ou métiers ciblés pour l'orientation." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Date d'enregistrement." }
+      },
+      "required": ["name", "email", "extractedSkills", "createdAt"]
+    },
+    "Challenge": {
+      "title": "AI Generated Technical Challenge",
+      "description": "Défi de codage ou d'architecture généré dynamiquement sur-mesure par Gemini en phase avec les gaps et les visées de l'étudiant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unique du challenge." },
+        "userId": { "type": "string", "description": "Lien vers la collection users." },
+        "title": { "type": "string", "description": "Titre captivant du challenge." },
+        "description": { "type": "string", "description": "Énoncé complet et consignes techniques du défi." },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"], "description": "Niveau de difficulté." },
+        "expectedConcepts": { "type": "array", "description": "Compétences ou concepts algorithmiques ou pratiques attendus." },
+        "starterCode": { "type": "string", "description": "Optionnel: squelette de code de départ fourni à l'élève." },
+        "status": { "type": "string", "enum": ["assigned", "completed"], "description": "Statut d'achèvement." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Date de conception automatique par l'IA." }
+      },
+      "required": ["userId", "title", "description", "difficulty", "expectedConcepts", "status", "createdAt"]
+    },
+    "Submission": {
+      "title": "Challenge Submission & Evaluation Profile",
+      "description": "Code source ou rapport soumis par l'étudiant accompagné des notes, du correctif et du feedback détaillé émis par l’IA Gemini.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unique de la soumission." },
+        "userId": { "type": "string", "description": "UID de l'étudiant." },
+        "challengeId": { "type": "string", "description": "Lien vers le challenge associé." },
+        "submittedCode": { "type": "string", "description": "Code soumis pour évaluation." },
+        "submittedReport": { "type": "string", "description": "Explications théoriques ou rapport texte joint par l'étudiant." },
+        "evaluationScore": { "type": "number", "description": "Note technique globale attribuée par le modèle (de 0 à 10)." },
+        "aiFeedback": { "type": "string", "description": "Commentaires correctifs, bienveillants et constructifs prodigués par Gemini." },
+        "strengthsIdentified": { "type": "array", "description": "Points d'excellence détectés dans le rendu." },
+        "gapsIdentified": { "type": "array", "description": "Axes de remédiations ou lacunes repérées." },
+        "status": { "type": "string", "enum": ["pending_review", "graded"], "description": "Statut d'évaluation." },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Moment de soumission." }
+      },
+      "required": ["userId", "challengeId", "submittedCode", "evaluationScore", "aiFeedback", "status", "submittedAt"]
+    },
+    "Roadmap": {
+      "title": "Interactive Career Roadmap",
+      "description": "Feuille de route d'apprentissage construite sur-mesure pour atteindre l'emploi idéal de l'étudiant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unique de la feuille de route." },
+        "userId": { "type": "string", "description": "ID de l'étudiant titulaire de la roadmap." },
+        "targetJob": { "type": "string", "description": "Métier visé par l'étudiant (ex: Dev Lead Backend)." },
+        "steps": { "type": "array", "description": "Série ordonnée d'étapes d'apprentissage avec compétences clés et statut." },
+        "estimatedTimeline": { "type": "string", "description": "Durée conseillée de réalisation (ex: 4 mois)." },
+        "aiAdvice": { "type": "string", "description": "Conseils d'orientation stratégique répertoriés par l'IA." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Instant de génération." }
+      },
+      "required": ["userId", "targetJob", "steps", "estimatedTimeline", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Profils des utilisateurs / étudiants."
+    },
+    "/challenges/{challengeId}": {
+      "schema": "Challenge",
+      "description": "Défis générés."
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Soumissions et corrections de code."
+    },
+    "/roadmaps/{roadmapId}": {
+      "schema": "Roadmap",
+      "description": "Feuilles de route d’orientation personnalisées."
+    }
+  }
+}

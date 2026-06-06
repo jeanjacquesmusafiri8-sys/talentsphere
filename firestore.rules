@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net - catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'extractedSkills', 'createdAt'])
+        && data.keys().size() <= 8
+        && data.name is string && data.name.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && data.extractedSkills is list
+        && data.createdAt is string; // Temporal checks done contextually
+    }
+
+    function isValidChallenge(data) {
+      return data.keys().hasAll(['userId', 'title', 'description', 'difficulty', 'expectedConcepts', 'status', 'createdAt'])
+        && data.keys().size() <= 9
+        && data.userId is string && data.userId.size() <= 128
+        && data.title is string && data.title.size() <= 200
+        && data.description is string && data.description.size() <= 2000
+        && data.difficulty in ['Easy', 'Medium', 'Hard']
+        && data.expectedConcepts is list
+        && data.status in ['assigned', 'completed']
+        && data.createdAt is string;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['userId', 'challengeId', 'submittedCode', 'evaluationScore', 'aiFeedback', 'status', 'submittedAt'])
+        && data.keys().size() <= 10
+        && data.userId is string && data.userId.size() <= 128
+        && data.challengeId is string && data.challengeId.size() <= 128
+        && data.submittedCode is string && data.submittedCode.size() <= 50000
+        && data.evaluationScore is number
+        && data.aiFeedback is string && data.aiFeedback.size() <= 5000
+        && data.status in ['pending_review', 'graded']
+        && data.submittedAt is string;
+    }
+
+    function isValidRoadmap(data) {
+      return data.keys().hasAll(['userId', 'targetJob', 'steps', 'estimatedTimeline', 'createdAt'])
+        && data.keys().size() <= 6
+        && data.userId is string && data.userId.size() <= 128
+        && data.targetJob is string && data.targetJob.size() <= 100
+        && data.steps is list
+        && data.estimatedTimeline is string && data.estimatedTimeline.size() <= 50
+        && data.createdAt is string;
+    }
+
+    // --- Collection Custom Rules ---
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isSignedIn() && resource.data.id == request.auth.uid;
+      
+      // Limit write to the actual user matching their Auth UID
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      
+      allow update: if isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().createdAt == existing().createdAt // Immutability
+        && incoming().email == existing().email // Email immutability
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'extractedSkills', 'aiScores', 'profileVector', 'careerInterests']);
+        
+      allow delete: if false; // Users cannot be deleted from client directly
+    }
+
+    // CHALLENGES COLLECTION
+    match /challenges/{challengeId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() 
+        && incoming().userId == request.auth.uid
+        && isValidChallenge(incoming());
+
+      allow update: if isSignedIn() 
+        && existing().userId == request.auth.uid
+        && isValidChallenge(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status']); // Only allow completing/updating status from client
+
+      allow delete: if false;
+    }
+
+    // SUBMISSIONS COLLECTION
+    match /submissions/{submissionId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && incoming().userId == request.auth.uid
+        && isValidSubmission(incoming());
+
+      allow update: if isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidSubmission(incoming())
+        && incoming().userId == existing().userId
+        && incoming().challengeId == existing().challengeId
+        && incoming().submittedAt == existing().submittedAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['submittedCode', 'submittedReport', 'evaluationScore', 'aiFeedback', 'status', 'strengthsIdentified', 'gapsIdentified']);
+
+      allow delete: if false;
+    }
+
+    // ROADMAPS COLLECTION
+    match /roadmaps/{roadmapId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && incoming().userId == request.auth.uid
+        && isValidRoadmap(incoming());
+
+      allow update: if isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidRoadmap(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['steps', 'estimatedTimeline', 'aiAdvice']);
+
+      allow delete: if false;
+    }
+  }
+}
